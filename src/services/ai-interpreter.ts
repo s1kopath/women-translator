@@ -1,33 +1,48 @@
 export async function interpretText(text: string): Promise<string> {
   try {
+    // Get API token from environment variable
+    // This works on all platforms (Vercel, Netlify, etc.) by setting the env var in their dashboard
+    const apiToken = import.meta.env.VITE_HUGGINGFACE_API_TOKEN;
+
+    if (!apiToken) {
+      console.warn(
+        "Hugging Face API token not found. Using fallback interpretation."
+      );
+      return getFallbackInterpretation(text);
+    }
+
     // Using Hugging Face Inference Providers with OpenAI-compatible chat completions endpoint
-    // The proxy in vite.config.ts handles authentication server-side
+    // Direct API call from frontend - works on all platforms
     // You can use different models like: deepseek-ai/DeepSeek-R1, meta-llama/Llama-3.2-3B-Instruct, etc.
     // Provider selection: :fastest (highest throughput), :cheapest (lowest cost), or :provider-name
-    const response = await fetch("/api/hf/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/Llama-3.2-3B-Instruct:fastest", // Using fastest provider selection
-        messages: [
-          {
-            role: "system",
-            content:
-              'You are a humorous AI that interprets what women say and reveals the "hidden meaning" in a playful, lighthearted way. Be funny, witty, and entertaining, but never mean-spirited or offensive. Keep responses brief and punchy (under 100 words).',
-          },
-          {
-            role: "user",
-            content: `What she said: "${text}"\n\nWhat she really means:`,
-          },
-        ],
-        max_tokens: 150,
-        temperature: 0.8,
-        top_p: 0.9,
-        stream: false,
-      }),
-    });
+    const response = await fetch(
+      "https://router.huggingface.co/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "meta-llama/Llama-3.2-3B-Instruct:fastest", // Using fastest provider selection
+          messages: [
+            {
+              role: "system",
+              content:
+                'You are a humorous AI that interprets what women say and reveals the "hidden meaning" in a playful, lighthearted way. Be funny, witty, and entertaining, but never mean-spirited or offensive. Keep responses brief and punchy (under 100 words).',
+            },
+            {
+              role: "user",
+              content: `What she said: "${text}"\n\nWhat she really means:`,
+            },
+          ],
+          max_tokens: 150,
+          temperature: 0.8,
+          top_p: 0.9,
+          stream: false,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
