@@ -4,6 +4,7 @@ export async function interpretText(text: string): Promise<string> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_TOKEN}`,
       },
       body: JSON.stringify({
         inputs: `You are a humorous AI that interprets what women say and reveals the "hidden meaning" in a playful, lighthearted way. Be funny, witty, and entertaining, but never mean-spirited or offensive. Keep responses brief and punchy.
